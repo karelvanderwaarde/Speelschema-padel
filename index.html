@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Speelschema Karel & co</title>
+  <title>Speelschema padel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1976d2">
   <link rel="manifest" href="manifest.webmanifest">
@@ -129,9 +129,9 @@
   <div class="app">
     <h1>Speelschema padel</h1>
     <div class="subtitle">
-      Week loopt van <strong>donderdag t/m woensdag</strong><br>
-      en herhaalt in een cyclus van 9 rondes.<br>
-      Feestdagen (o.a. Oudejaarsdag) worden overgeslagen.
+      Week loopt van <strong>donderdag t/m woensdag</strong>.<br>
+      Cyclus van 15 rondes: iedereen speelt 10× en rust 5×, elk tweetal rust 1× samen.<br>
+      Oudejaarsdag wordt overgeslagen.
     </div>
 
     <div class="controls">
@@ -159,45 +159,69 @@
         <button id="prevWeekBtn" class="secondary">&larr; Vorige week</button>
         <button id="thisWeekBtn" class="secondary">Deze week</button>
         <button id="nextWeekBtn">&rarr; Volgende week</button>
-        <button id="nextPlayWeekBtn" class="special">Volgende speelweek (feestdagen overslaan)</button>
+        <button id="nextPlayWeekBtn" class="special">Volgende speelweek</button>
       </div>
     </div>
 
     <div class="small">
       Startreferentie: 1e speelavond = woensdag 3 december 2025 (Ronde 1).<br>
       Week 0 = donderdag 27-11-2025 t/m woensdag 03-12-2025.<br>
-      Rotatie telt alleen weken mee waarin echt gespeeld wordt.
+      Rotatie telt alleen gespeelde weken; Oudejaarsdag (31-12) wordt overgeslagen.
     </div>
   </div>
 
   <script>
+    // 15-ronden-cyclus op basis van rust-koppels:
+    // K = Karel, D = Damir, M = Marco, R = Ramon, L = Leon, J = John
+    // Hier direct met namen uitgewerkt:
     const rounds = [
-      { round: 1, plays: ["Karel", "Damir", "Marco", "Ramon"], rests: ["Leon", "John"] },
-      { round: 2, plays: ["Karel", "Damir", "Leon", "John"], rests: ["Marco", "Ramon"] },
-      { round: 3, plays: ["Marco", "Ramon", "Leon", "John"], rests: ["Karel", "Damir"] },
-      { round: 4, plays: ["Karel", "Damir", "Marco", "Leon"], rests: ["Ramon", "John"] },
-      { round: 5, plays: ["Karel", "Marco", "Ramon", "John"], rests: ["Damir", "Leon"] },
-      { round: 6, plays: ["Damir", "Ramon", "Leon", "John"], rests: ["Karel", "Marco"] },
-      { round: 7, plays: ["Karel", "Damir", "Marco", "John"], rests: ["Ramon", "Leon"] },
-      { round: 8, plays: ["Karel", "Ramon", "Leon", "John"], rests: ["Damir", "Marco"] },
-      { round: 9, plays: ["Damir", "Marco", "Ramon", "Leon"], rests: ["Karel", "John"] }
+      // 1: rust Karel & Damir
+      { round: 1,  plays: ["Marco", "Ramon", "Leon", "John"],       rests: ["Karel", "Damir"] },
+      // 2: rust Marco & Ramon
+      { round: 2,  plays: ["Karel", "Damir", "Leon", "John"],       rests: ["Marco", "Ramon"] },
+      // 3: rust Karel & Leon
+      { round: 3,  plays: ["Damir", "Marco", "Ramon", "John"],      rests: ["Karel", "Leon"] },
+      // 4: rust Damir & Marco
+      { round: 4,  plays: ["Karel", "Ramon", "Leon", "John"],       rests: ["Damir", "Marco"] },
+      // 5: rust Karel & Ramon
+      { round: 5,  plays: ["Damir", "Marco", "Leon", "John"],       rests: ["Karel", "Ramon"] },
+      // 6: rust Damir & Leon
+      { round: 6,  plays: ["Karel", "Marco", "Ramon", "John"],      rests: ["Damir", "Leon"] },
+      // 7: rust Karel & John
+      { round: 7,  plays: ["Damir", "Marco", "Ramon", "Leon"],      rests: ["Karel", "John"] },
+      // 8: rust Damir & Ramon
+      { round: 8,  plays: ["Karel", "Marco", "Leon", "John"],       rests: ["Damir", "Ramon"] },
+      // 9: rust Marco & John
+      { round: 9,  plays: ["Karel", "Damir", "Ramon", "Leon"],      rests: ["Marco", "John"] },
+      // 10: rust Ramon & Leon
+      { round: 10, plays: ["Karel", "Damir", "Marco", "John"],      rests: ["Ramon", "Leon"] },
+      // 11: rust Damir & John
+      { round: 11, plays: ["Karel", "Marco", "Ramon", "Leon"],      rests: ["Damir", "John"] },
+      // 12: rust Marco & Leon
+      { round: 12, plays: ["Karel", "Damir", "Ramon", "John"],      rests: ["Marco", "Leon"] },
+      // 13: rust Ramon & John
+      { round: 13, plays: ["Karel", "Damir", "Marco", "Leon"],      rests: ["Ramon", "John"] },
+      // 14: rust Karel & Marco
+      { round: 14, plays: ["Damir", "Ramon", "Leon", "John"],       rests: ["Karel", "Marco"] },
+      // 15: rust Leon & John
+      { round: 15, plays: ["Karel", "Damir", "Marco", "Ramon"],     rests: ["Leon", "John"] },
     ];
 
     const MS_PER_DAY = 24 * 60 * 60 * 1000;
-    const baseWeekStart = new Date(2025, 10, 27); // 27 nov 2025
+
+    // Week 0 start: donderdag 27 november 2025
+    // (Speeldag van week 0 = woensdag 03-12-2025 = Ronde 1)
+    const baseWeekStart = new Date(2025, 10, 27); // maand 10 = november (0-based)
 
     function toMidnight(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
 
+    // Alleen Oudejaarsdag wordt als "geen speelweek" gezien
     function isSkippedMatchDate(matchDate) {
       const d = matchDate.getDate();
       const m = matchDate.getMonth() + 1;
       if (d === 31 && m === 12) return true; // Oudejaarsdag
-      if (d === 1 && m === 1) return true;   // Nieuwjaarsdag
-      if (d === 27 && m === 4) return true;  // Koningsdag
-      if (d === 5 && m === 5) return true;   // Bevrijdingsdag
-      if (m === 12 && (d === 25 || d === 26)) return true; // Kerst
       return false;
     }
 
@@ -206,6 +230,7 @@
       return new Date(weekStart.getTime() + 6 * MS_PER_DAY); // woensdag
     }
 
+    // Telt hoeveel weken tot weekIndex-1 een "skip" hebben
     function countSkippedWeeksUpTo(weekIndex) {
       if (weekIndex <= 0) return 0;
       let skipped = 0;
@@ -216,10 +241,11 @@
       return skipped;
     }
 
+    // Bepaal welke ronde bij een week hoort, rekening houdend met skip-weeks
     function getRoundForWeekIndex(weekIndex) {
       if (weekIndex < 0) weekIndex = 0;
       const skipped = countSkippedWeeksUpTo(weekIndex);
-      const effectiveWeeks = weekIndex - skipped;
+      const effectiveWeeks = weekIndex - skipped; // alleen gespeelde weken tellen
       const idx = ((effectiveWeeks % rounds.length) + rounds.length) % rounds.length;
       return rounds[idx];
     }
@@ -265,9 +291,9 @@
       restsList.innerHTML = "";
 
       if (isSkip) {
-        roundTitle.textContent = "Geen speelronde (feestdag)";
+        roundTitle.textContent = "Geen speelronde (Oudejaarsdag)";
         noMatch.style.display = "block";
-        noMatch.textContent = "Deze woensdag is een feestdag. Er wordt deze week niet gespeeld en de rotatie schuift door naar de volgende week.";
+        noMatch.textContent = "Deze woensdag is Oudejaarsdag. Er wordt deze week niet gespeeld en de rotatie schuift door naar de volgende week.";
         playsBlock.style.display = "none";
         restsBlock.style.display = "none";
       } else {
