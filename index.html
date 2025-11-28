@@ -1,1 +1,348 @@
-<html><body><h1>Speelschema App</h1><p>PWA bestanden hier.</p></body></html>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Speelschema Karel & co</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1976d2">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: #f5f5f5;
+    }
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: #555;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .week-label {
+      text-align: center;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+    .date-label {
+      text-align: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+      color: #333;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .controls label {
+      font-weight: 500;
+    }
+    .controls input[type="date"] {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.9rem;
+    }
+    .card {
+      background: #fafafa;
+      border-radius: 0.75rem;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      border: 1px solid #e0e0e0;
+    }
+    .card h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+    }
+    .players-title {
+      font-weight: 600;
+      margin-top: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
+    .players {
+      margin: 0 0 0.5rem;
+      padding-left: 1rem;
+      font-size: 0.95rem;
+    }
+    .players li {
+      margin-bottom: 0.1rem;
+    }
+    .no-match {
+      font-size: 0.95rem;
+      color: #c62828;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .nav-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .nav-buttons button {
+      flex: 1 1 30%;
+      padding: 0.6rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      background: #1976d2;
+      color: white;
+    }
+    .nav-buttons button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    .nav-buttons button.special {
+      background: #2e7d32;
+    }
+    .nav-buttons button:active {
+      transform: scale(0.98);
+    }
+    .small {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.75rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Speelschema padel</h1>
+    <div class="subtitle">
+      Week loopt van <strong>donderdag t/m woensdag</strong><br>
+      en herhaalt in een cyclus van 9 rondes.<br>
+      Feestdagen (o.a. Oudejaarsdag) worden overgeslagen.
+    </div>
+
+    <div class="controls">
+      <label for="datePicker">Spring naar datum:</label>
+      <input id="datePicker" type="date">
+    </div>
+
+    <div id="weekLabel" class="week-label"></div>
+    <div id="dateLabel" class="date-label"></div>
+
+    <div class="card">
+      <h2 id="roundTitle"></h2>
+      <div id="noMatch" class="no-match" style="display:none;"></div>
+
+      <div id="playsBlock">
+        <div class="players-title">Spelers deze week:</div>
+        <ul id="playsList" class="players"></ul>
+      </div>
+      <div id="restsBlock">
+        <div class="players-title">Rust deze week:</div>
+        <ul id="restsList" class="players"></ul>
+      </div>
+
+      <div class="nav-buttons">
+        <button id="prevWeekBtn" class="secondary">&larr; Vorige week</button>
+        <button id="thisWeekBtn" class="secondary">Deze week</button>
+        <button id="nextWeekBtn">&rarr; Volgende week</button>
+        <button id="nextPlayWeekBtn" class="special">Volgende speelweek (feestdagen overslaan)</button>
+      </div>
+    </div>
+
+    <div class="small">
+      Startreferentie: 1e speelavond = woensdag 3 december 2025 (Ronde 1).<br>
+      Week 0 = donderdag 27-11-2025 t/m woensdag 03-12-2025.<br>
+      Rotatie telt alleen weken mee waarin echt gespeeld wordt.
+    </div>
+  </div>
+
+  <script>
+    const rounds = [
+      { round: 1, plays: ["Karel", "Damir", "Marco", "Ramon"], rests: ["Leon", "John"] },
+      { round: 2, plays: ["Karel", "Damir", "Leon", "John"], rests: ["Marco", "Ramon"] },
+      { round: 3, plays: ["Marco", "Ramon", "Leon", "John"], rests: ["Karel", "Damir"] },
+      { round: 4, plays: ["Karel", "Damir", "Marco", "Leon"], rests: ["Ramon", "John"] },
+      { round: 5, plays: ["Karel", "Marco", "Ramon", "John"], rests: ["Damir", "Leon"] },
+      { round: 6, plays: ["Damir", "Ramon", "Leon", "John"], rests: ["Karel", "Marco"] },
+      { round: 7, plays: ["Karel", "Damir", "Marco", "John"], rests: ["Ramon", "Leon"] },
+      { round: 8, plays: ["Karel", "Ramon", "Leon", "John"], rests: ["Damir", "Marco"] },
+      { round: 9, plays: ["Damir", "Marco", "Ramon", "Leon"], rests: ["Karel", "John"] }
+    ];
+
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const baseWeekStart = new Date(2025, 10, 27); // 27 nov 2025
+
+    function toMidnight(d) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function isSkippedMatchDate(matchDate) {
+      const d = matchDate.getDate();
+      const m = matchDate.getMonth() + 1;
+      if (d === 31 && m === 12) return true; // Oudejaarsdag
+      if (d === 1 && m === 1) return true;   // Nieuwjaarsdag
+      if (d === 27 && m === 4) return true;  // Koningsdag
+      if (d === 5 && m === 5) return true;   // Bevrijdingsdag
+      if (m === 12 && (d === 25 || d === 26)) return true; // Kerst
+      return false;
+    }
+
+    function getMatchDateForWeekIndex(weekIndex) {
+      const weekStart = new Date(baseWeekStart.getTime() + weekIndex * 7 * MS_PER_DAY);
+      return new Date(weekStart.getTime() + 6 * MS_PER_DAY); // woensdag
+    }
+
+    function countSkippedWeeksUpTo(weekIndex) {
+      if (weekIndex <= 0) return 0;
+      let skipped = 0;
+      for (let i = 0; i < weekIndex; i++) {
+        const matchDate = getMatchDateForWeekIndex(i);
+        if (isSkippedMatchDate(matchDate)) skipped++;
+      }
+      return skipped;
+    }
+
+    function getRoundForWeekIndex(weekIndex) {
+      if (weekIndex < 0) weekIndex = 0;
+      const skipped = countSkippedWeeksUpTo(weekIndex);
+      const effectiveWeeks = weekIndex - skipped;
+      const idx = ((effectiveWeeks % rounds.length) + rounds.length) % rounds.length;
+      return rounds[idx];
+    }
+
+    function getWeekStartFromIndex(weekIndex) {
+      return new Date(baseWeekStart.getTime() + weekIndex * 7 * MS_PER_DAY);
+    }
+
+    function getCurrentWeekIndex(today = new Date()) {
+      const t = toMidnight(today);
+      const base = toMidnight(baseWeekStart);
+      const diffDays = Math.floor((t - base) / MS_PER_DAY);
+      return Math.floor(diffDays / 7);
+    }
+
+    let currentWeekIndex = getCurrentWeekIndex();
+
+    function formatDate(d) {
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      return `${dd}-${mm}-${yyyy}`;
+    }
+
+    function render() {
+      const weekStart = getWeekStartFromIndex(currentWeekIndex);
+      const matchDate = getMatchDateForWeekIndex(currentWeekIndex);
+      const isSkip = isSkippedMatchDate(matchDate);
+
+      const weekLabel = document.getElementById("weekLabel");
+      const dateLabel = document.getElementById("dateLabel");
+      const roundTitle = document.getElementById("roundTitle");
+      const playsList = document.getElementById("playsList");
+      const restsList = document.getElementById("restsList");
+      const noMatch = document.getElementById("noMatch");
+      const playsBlock = document.getElementById("playsBlock");
+      const restsBlock = document.getElementById("restsBlock");
+
+      weekLabel.textContent = `Week ${currentWeekIndex} (do ${formatDate(weekStart)} t/m wo ${formatDate(matchDate)})`;
+      dateLabel.textContent = `Speeldag volgens schema: woensdag ${formatDate(matchDate)}`;
+
+      playsList.innerHTML = "";
+      restsList.innerHTML = "";
+
+      if (isSkip) {
+        roundTitle.textContent = "Geen speelronde (feestdag)";
+        noMatch.style.display = "block";
+        noMatch.textContent = "Deze woensdag is een feestdag. Er wordt deze week niet gespeeld en de rotatie schuift door naar de volgende week.";
+        playsBlock.style.display = "none";
+        restsBlock.style.display = "none";
+      } else {
+        const round = getRoundForWeekIndex(currentWeekIndex);
+        roundTitle.textContent = `Ronde ${round.round}`;
+        noMatch.style.display = "none";
+        playsBlock.style.display = "block";
+        restsBlock.style.display = "block";
+
+        round.plays.forEach(name => {
+          const li = document.createElement("li");
+          li.textContent = name;
+          playsList.appendChild(li);
+        });
+
+        round.rests.forEach(name => {
+          const li = document.createElement("li");
+          li.textContent = name;
+          restsList.appendChild(li);
+        });
+      }
+    }
+
+    document.getElementById("prevWeekBtn").addEventListener("click", () => {
+      currentWeekIndex--;
+      render();
+    });
+
+    document.getElementById("nextWeekBtn").addEventListener("click", () => {
+      currentWeekIndex++;
+      render();
+    });
+
+    document.getElementById("thisWeekBtn").addEventListener("click", () => {
+      currentWeekIndex = getCurrentWeekIndex();
+      render();
+    });
+
+    document.getElementById("nextPlayWeekBtn").addEventListener("click", () => {
+      let idx = currentWeekIndex + 1;
+      while (true) {
+        const matchDate = getMatchDateForWeekIndex(idx);
+        if (!isSkippedMatchDate(matchDate)) {
+          currentWeekIndex = idx;
+          render();
+          break;
+        }
+        idx++;
+      }
+    });
+
+    document.getElementById("datePicker").addEventListener("change", (e) => {
+      if (!e.target.value) return;
+      const parts = e.target.value.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const selected = toMidnight(new Date(year, month, day));
+
+      const base = toMidnight(baseWeekStart);
+      const diffDays = Math.floor((selected - base) / MS_PER_DAY);
+      let weekIndex = Math.floor(diffDays / 7);
+
+      if (weekIndex < 0) weekIndex = 0;
+      currentWeekIndex = weekIndex;
+      render();
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch(console.error);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
