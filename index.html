@@ -2,11 +2,8 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Speelschema padel</title>
+  <title>Speelschema Karel & co</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1976d2">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png">
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -127,11 +124,11 @@
 </head>
 <body>
   <div class="app">
-    <h1>Speelschema padel</h1>
+    <h1>Speelschema</h1>
     <div class="subtitle">
-      Week loopt van <strong>donderdag t/m woensdag</strong>.<br>
-      Cyclus van 15 rondes: iedereen speelt 10× en rust 5×, elk tweetal rust 1× samen.<br>
-      Oudejaarsdag wordt overgeslagen.
+      Week loopt van <strong>donderdag t/m woensdag</strong><br>
+      en herhaalt in een cyclus van 9 rondes.<br>
+      Feestdagen (o.a. Oudejaarsdag) worden overgeslagen.
     </div>
 
     <div class="controls">
@@ -159,52 +156,29 @@
         <button id="prevWeekBtn" class="secondary">&larr; Vorige week</button>
         <button id="thisWeekBtn" class="secondary">Deze week</button>
         <button id="nextWeekBtn">&rarr; Volgende week</button>
-        <button id="nextPlayWeekBtn" class="special">Volgende speelweek</button>
+        <button id="nextPlayWeekBtn" class="special">Volgende speelweek (feestdagen overslaan)</button>
       </div>
     </div>
 
     <div class="small">
       Startreferentie: 1e speelavond = woensdag 3 december 2025 (Ronde 1).<br>
       Week 0 = donderdag 27-11-2025 t/m woensdag 03-12-2025.<br>
-      Rotatie telt alleen gespeelde weken; Oudejaarsdag (31-12) wordt overgeslagen.
+      Rotatie telt alleen weken mee waarin echt gespeeld wordt.
     </div>
   </div>
 
   <script>
-    // 15-ronden-cyclus op basis van rust-koppels:
-    // K = Karel, D = Damir, M = Marco, R = Ramon, L = Leon, J = John
-    // Hier direct met namen uitgewerkt:
+    // Rotatie van 9 rondes
     const rounds = [
-      // 1: rust Karel & Damir
-      { round: 1,  plays: ["Marco", "Ramon", "Leon", "John"],       rests: ["Karel", "Damir"] },
-      // 2: rust Marco & Ramon
-      { round: 2,  plays: ["Karel", "Damir", "Leon", "John"],       rests: ["Marco", "Ramon"] },
-      // 3: rust Karel & Leon
-      { round: 3,  plays: ["Damir", "Marco", "Ramon", "John"],      rests: ["Karel", "Leon"] },
-      // 4: rust Damir & Marco
-      { round: 4,  plays: ["Karel", "Ramon", "Leon", "John"],       rests: ["Damir", "Marco"] },
-      // 5: rust Karel & Ramon
-      { round: 5,  plays: ["Damir", "Marco", "Leon", "John"],       rests: ["Karel", "Ramon"] },
-      // 6: rust Damir & Leon
-      { round: 6,  plays: ["Karel", "Marco", "Ramon", "John"],      rests: ["Damir", "Leon"] },
-      // 7: rust Karel & John
-      { round: 7,  plays: ["Damir", "Marco", "Ramon", "Leon"],      rests: ["Karel", "John"] },
-      // 8: rust Damir & Ramon
-      { round: 8,  plays: ["Karel", "Marco", "Leon", "John"],       rests: ["Damir", "Ramon"] },
-      // 9: rust Marco & John
-      { round: 9,  plays: ["Karel", "Damir", "Ramon", "Leon"],      rests: ["Marco", "John"] },
-      // 10: rust Ramon & Leon
-      { round: 10, plays: ["Karel", "Damir", "Marco", "John"],      rests: ["Ramon", "Leon"] },
-      // 11: rust Damir & John
-      { round: 11, plays: ["Karel", "Marco", "Ramon", "Leon"],      rests: ["Damir", "John"] },
-      // 12: rust Marco & Leon
-      { round: 12, plays: ["Karel", "Damir", "Ramon", "John"],      rests: ["Marco", "Leon"] },
-      // 13: rust Ramon & John
-      { round: 13, plays: ["Karel", "Damir", "Marco", "Leon"],      rests: ["Ramon", "John"] },
-      // 14: rust Karel & Marco
-      { round: 14, plays: ["Damir", "Ramon", "Leon", "John"],       rests: ["Karel", "Marco"] },
-      // 15: rust Leon & John
-      { round: 15, plays: ["Karel", "Damir", "Marco", "Ramon"],     rests: ["Leon", "John"] },
+      { round: 1, plays: ["Karel", "Damir", "Marco", "Ramon"], rests: ["Leon", "John"] },
+      { round: 2, plays: ["Karel", "Damir", "Leon", "John"], rests: ["Marco", "Ramon"] },
+      { round: 3, plays: ["Marco", "Ramon", "Leon", "John"], rests: ["Karel", "Damir"] },
+      { round: 4, plays: ["Karel", "Damir", "Marco", "Leon"], rests: ["Ramon", "John"] },
+      { round: 5, plays: ["Karel", "Marco", "Ramon", "John"], rests: ["Damir", "Leon"] },
+      { round: 6, plays: ["Damir", "Ramon", "Leon", "John"], rests: ["Karel", "Marco"] },
+      { round: 7, plays: ["Karel", "Damir", "Marco", "John"], rests: ["Ramon", "Leon"] },
+      { round: 8, plays: ["Karel", "Ramon", "Leon", "John"], rests: ["Damir", "Marco"] },
+      { round: 9, plays: ["Damir", "Marco", "Ramon", "Leon"], rests: ["Karel", "John"] }
     ];
 
     const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -217,20 +191,38 @@
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
 
-    // Alleen Oudejaarsdag wordt als "geen speelweek" gezien
+    // Bepaal of de speeldag (woensdag) een feestdag is die we overslaan
     function isSkippedMatchDate(matchDate) {
       const d = matchDate.getDate();
       const m = matchDate.getMonth() + 1;
-      if (d === 31 && m === 12) return true; // Oudejaarsdag
+
+      // Oudejaarsdag
+      if (d === 31 && m === 12) return true;
+
+      // Nieuwjaarsdag (1 jan) – als die ooit op woensdag valt
+      if (d === 1 && m === 1) return true;
+
+      // Koningsdag (27 april)
+      if (d === 27 && m === 4) return true;
+
+      // Bevrijdingsdag (5 mei)
+      if (d === 5 && m === 5) return true;
+
+      // Kerst (25 & 26 december)
+      if (m === 12 && (d === 25 || d === 26)) return true;
+
+      // Eventueel later uit te breiden met beweeglijke feestdagen (Pasen, Hemelvaart, Pinksteren)
       return false;
     }
 
+    // Bereken speeldatum (woensdag) van een weekIndex
     function getMatchDateForWeekIndex(weekIndex) {
       const weekStart = new Date(baseWeekStart.getTime() + weekIndex * 7 * MS_PER_DAY);
       return new Date(weekStart.getTime() + 6 * MS_PER_DAY); // woensdag
     }
 
-    // Telt hoeveel weken tot weekIndex-1 een "skip" hebben
+    // Telt hoeveel weken tussen 0 en weekIndex-1 een feestdag-speeldag hadden
+    // (Die tellen niet mee in de ronde-rotatie)
     function countSkippedWeeksUpTo(weekIndex) {
       if (weekIndex <= 0) return 0;
       let skipped = 0;
@@ -241,7 +233,7 @@
       return skipped;
     }
 
-    // Bepaal welke ronde bij een week hoort, rekening houdend met skip-weeks
+    // Bepaal de ronde voor een gegeven weekIndex (alleen voor weken die geen feestdag zijn)
     function getRoundForWeekIndex(weekIndex) {
       if (weekIndex < 0) weekIndex = 0;
       const skipped = countSkippedWeeksUpTo(weekIndex);
@@ -254,6 +246,7 @@
       return new Date(baseWeekStart.getTime() + weekIndex * 7 * MS_PER_DAY);
     }
 
+    // Bepaal huidige weekIndex o.b.v. vandaag
     function getCurrentWeekIndex(today = new Date()) {
       const t = toMidnight(today);
       const base = toMidnight(baseWeekStart);
@@ -291,9 +284,10 @@
       restsList.innerHTML = "";
 
       if (isSkip) {
-        roundTitle.textContent = "Geen speelronde (Oudejaarsdag)";
+        // Feestdag: geen speelronde
+        roundTitle.textContent = "Geen speelronde (feestdag)";
         noMatch.style.display = "block";
-        noMatch.textContent = "Deze woensdag is Oudejaarsdag. Er wordt deze week niet gespeeld en de rotatie schuift door naar de volgende week.";
+        noMatch.textContent = "Deze woensdag is een feestdag (bijv. Oudejaarsdag, Koningsdag of Kerst). Er wordt deze week niet gespeeld en de rotatie schuift door naar de volgende week.";
         playsBlock.style.display = "none";
         restsBlock.style.display = "none";
       } else {
@@ -317,6 +311,7 @@
       }
     }
 
+    // Navigatie-knoppen
     document.getElementById("prevWeekBtn").addEventListener("click", () => {
       currentWeekIndex--;
       render();
@@ -332,8 +327,10 @@
       render();
     });
 
+    // Volgende speelweek (feestdagen overslaan)
     document.getElementById("nextPlayWeekBtn").addEventListener("click", () => {
       let idx = currentWeekIndex + 1;
+      // zoek de eerstvolgende week waarvan de speeldag geen feestdag is
       while (true) {
         const matchDate = getMatchDateForWeekIndex(idx);
         if (!isSkippedMatchDate(matchDate)) {
@@ -345,6 +342,7 @@
       }
     });
 
+    // Datumkiezer: spring naar de week waar de gekozen datum in valt
     document.getElementById("datePicker").addEventListener("change", (e) => {
       if (!e.target.value) return;
       const parts = e.target.value.split("-");
@@ -357,17 +355,12 @@
       const diffDays = Math.floor((selected - base) / MS_PER_DAY);
       let weekIndex = Math.floor(diffDays / 7);
 
-      if (weekIndex < 0) weekIndex = 0;
+      if (weekIndex < 0) weekIndex = 0; // voor de zekerheid niet vóór het startpunt
       currentWeekIndex = weekIndex;
       render();
     });
 
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js").catch(console.error);
-      });
-    }
-
+    // Initial render
     render();
   </script>
 </body>
